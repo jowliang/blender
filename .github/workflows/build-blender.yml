@@ -1,38 +1,49 @@
-name: 编译Windows 10版Blender（多轴镜像测试）
+name: Build Blender (Tariq Mirror PR)
+
 on:
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 允许手动点击运行
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    runs-on: windows-2022
+
     steps:
-      - name: 拉取Tariq仓库的目标分支
+      - name: 检出 Blender 官方源码
         uses: actions/checkout@v4
         with:
-          repository: Tariq-13/blender  # 直接从Tariq的仓库拉取（而非你的Fork）
-          ref: gsoc-2025-edit-mesh-mirroring-hideselected  # 目标分支名
-          submodules: recursive  # 拉取所有子模块（Blender必须）
-          fetch-depth: 0  # 取消浅克隆，拉取完整历史（避免分支获取失败）
+          repository: blender/blender
+          fetch-depth: 0
 
-      - name: 安装依赖（Visual Studio工具链）
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: 配置CMake
+      - name: 获取 Tariq 分支代码
         run: |
-          mkdir build
-          cd build
-          cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-        shell: cmd
+          git fetch origin pull/142698/head:pr-142698
+          git checkout pr-142698
 
-      - name: 编译Blender
+      - name: 安装依赖
         run: |
-          cd build
-          msbuild Blender.sln /p:Configuration=Release /p:Platform=x64 /m
-        shell: cmd
+          choco install ninja cmake git -y
+          git submodule update --init --recursive
 
-      - name: 上传编译产物
+      - name: 创建构建目录
+        run: mkdir build
+
+      - name: CMake 配置
+        working-directory: build
+        run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+      - name: 编译 Blender
+        working-directory: build
+        run: ninja
+
+      - name: 打包构建结果
+        run: |
+          mkdir output
+          copy build\bin\Release\blender.exe output\
+          copy build\bin\Release\*.dll output\
+          Compress-Archive -Path output\* -DestinationPath blender_tariq_win.zip
+
+      - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: blender-windows-build
-          path: build/bin/Release/
-    
+          name: blender_tariq_win
+          path: blender_tariq_win.zip
