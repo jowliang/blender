@@ -1,4 +1,4 @@
-name: Build Tariq Blender
+name: Build Tariq Blender (Windows)
 
 on:
   workflow_dispatch:
@@ -10,10 +10,11 @@ jobs:
     steps:
       - name: 安装依赖
         run: |
+          # 只安装必要的工具，避免引入 MinGW 导致编译器冲突
           choco install ninja cmake git -y
 
-      - name: 克隆 Tariq 仓库
-        run: git clone --depth=1 https://projects.blender.org/Tariq-13/blender.git
+      - name: 克隆 Tariq 分支
+        run: git clone --depth=1 --branch gsoc-2025-edit-mesh-mirroring-bevel https://projects.blender.org/Tariq-13/blender.git
 
       - name: 初始化子模块
         working-directory: blender
@@ -22,17 +23,30 @@ jobs:
       - name: 创建构建目录
         run: mkdir build
 
-      - name: CMake 配置
-        working-directory: build
-        run: cmake ../blender -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+      - name: 配置 Visual Studio 环境
+        # 加载 Visual Studio 2022 环境变量，确保 CMake 找到 MSVC 编译器
+        run: |
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          echo "::set-env name=VSCMD_ARG_TGT_ARCH::x64"
 
-      - name: 编译 Blender
+      - name: CMake 配置（使用 MSVC + Ninja）
         working-directory: build
-        run: ninja
+        run: |
+          # 使用 Visual Studio 2022 生成器，并指定 Ninja 作为构建工具
+          cmake ../blender ^
+            -G "Visual Studio 17 2022" ^
+            -A x64 ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_MAKE_PROGRAM=ninja
 
-      - name: 打包 Blender
+      - name: Ninja 编译 Blender
+        working-directory: build
+        run: cmake --build . --config Release --parallel
+
+      - name: 打包构建产物
         run: |
           mkdir output
+          # 注意 MSVC 构建的产物路径与 MinGW 不同（通常在 build/bin/Release 下）
           copy build\bin\Release\blender.exe output\
           copy build\bin\Release\*.dll output\
           Compress-Archive -Path output\* -DestinationPath blender_tariq_win.zip
