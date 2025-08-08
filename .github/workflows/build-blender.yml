@@ -1,49 +1,36 @@
-name: Build Blender (Tariq Mirror PR)
-
+name: 编译Windows 10版Blender（多轴镜像测试）
 on:
-  workflow_dispatch:  # 允许手动点击运行
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  build:
-    runs-on: windows-2022
-
+  build-windows:
+    runs-on: windows-latest  # 使用Windows系统编译
     steps:
-      - name: 检出 Blender 官方源码
+      - name: 拉取代码（指定目标分支）
         uses: actions/checkout@v4
         with:
-          repository: blender/blender
-          fetch-depth: 0
+          ref: Tariq-13/blender:gsoc-2025-edit-mesh-mirroring-hideselected  # 替换为Tariq的PR分支名
+          submodules: recursive  # 拉取所有子模块
 
-      - name: 获取 Tariq 分支代码
+      - name: 安装依赖（Visual Studio工具链）
+        uses: ilammy/msvc-dev-cmd@v1  # 配置Visual Studio编译环境
+
+      - name: 配置CMake（生成Visual Studio项目）
         run: |
-          git fetch origin pull/142698/head:pr-142698
-          git checkout pr-142698
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+        shell: cmd  # 使用Windows命令提示符
 
-      - name: 安装依赖
+      - name: 编译Blender（Release模式）
         run: |
-          choco install ninja cmake git -y
-          git submodule update --init --recursive
+          cd build
+          msbuild Blender.sln /p:Configuration=Release /p:Platform=x64 /m
+        shell: cmd  # 用msbuild编译（Visual Studio的命令行工具）
 
-      - name: 创建构建目录
-        run: mkdir build
-
-      - name: CMake 配置
-        working-directory: build
-        run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-
-      - name: 编译 Blender
-        working-directory: build
-        run: ninja
-
-      - name: 打包构建结果
-        run: |
-          mkdir output
-          copy build\bin\Release\blender.exe output\
-          copy build\bin\Release\*.dll output\
-          Compress-Archive -Path output\* -DestinationPath blender_tariq_win.zip
-
-      - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+      - name: 上传Windows编译产物
+        uses: actions/upload-artifact@v3
         with:
-          name: blender_tariq_win
-          path: blender_tariq_win.zip
+          name: blender-windows-build
+          path: build/bin/Release/  # Windows下的Release版本输出路径
+    
