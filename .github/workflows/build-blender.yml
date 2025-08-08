@@ -9,7 +9,7 @@ jobs:
       - name: 拉取代码（指定目标分支）
         uses: actions/checkout@v4
         with:
-          ref: Tariq-13/blender:gsoc-2025-edit-mesh-mirroring-hideselected  # 替换为Tariq的PR分支名
+          ref: gsoc-2025-edit-mesh-mirroring-hideselected  # 替换为Tariq的PR分支名
           submodules: recursive  # 拉取所有子模块
 
       - name: 安装依赖（Visual Studio工具链）
