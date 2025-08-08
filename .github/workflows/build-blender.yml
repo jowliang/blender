@@ -4,33 +4,35 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest  # 使用Windows系统编译
+    runs-on: windows-latest
     steps:
-      - name: 拉取代码（指定目标分支）
+      - name: 拉取Tariq仓库的目标分支
         uses: actions/checkout@v4
         with:
-          ref: gsoc-2025-edit-mesh-mirroring-hideselected  # 替换为Tariq的PR分支名
-          submodules: recursive  # 拉取所有子模块
+          repository: Tariq-13/blender  # 直接从Tariq的仓库拉取（而非你的Fork）
+          ref: gsoc-2025-edit-mesh-mirroring-hideselected  # 目标分支名
+          submodules: recursive  # 拉取所有子模块（Blender必须）
+          fetch-depth: 0  # 取消浅克隆，拉取完整历史（避免分支获取失败）
 
       - name: 安装依赖（Visual Studio工具链）
-        uses: ilammy/msvc-dev-cmd@v1  # 配置Visual Studio编译环境
+        uses: ilammy/msvc-dev-cmd@v1
 
-      - name: 配置CMake（生成Visual Studio项目）
+      - name: 配置CMake
         run: |
           mkdir build
           cd build
           cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-        shell: cmd  # 使用Windows命令提示符
+        shell: cmd
 
-      - name: 编译Blender（Release模式）
+      - name: 编译Blender
         run: |
           cd build
           msbuild Blender.sln /p:Configuration=Release /p:Platform=x64 /m
-        shell: cmd  # 用msbuild编译（Visual Studio的命令行工具）
+        shell: cmd
 
-      - name: 上传Windows编译产物
+      - name: 上传编译产物
         uses: actions/upload-artifact@v4
         with:
           name: blender-windows-build
-          path: build/bin/Release/  # Windows下的Release版本输出路径
+          path: build/bin/Release/
     
