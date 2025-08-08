@@ -29,7 +29,7 @@ jobs:
         shell: cmd  # 用msbuild编译（Visual Studio的命令行工具）
 
       - name: 上传Windows编译产物
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: blender-windows-build
           path: build/bin/Release/  # Windows下的Release版本输出路径
