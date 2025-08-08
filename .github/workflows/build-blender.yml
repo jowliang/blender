@@ -1,4 +1,4 @@
-name: Build Blender from Gerrit PR D142698
+name: Build Tariq Blender
 
 on:
   workflow_dispatch:
@@ -12,13 +12,8 @@ jobs:
         run: |
           choco install ninja cmake git -y
 
-      - name: 克隆 Blender 官方仓库（官方 git.blender.org）
-        run: git clone --depth=1 https://git.blender.org/blender.git
-
-      - name: 拉取 Gerrit PR D142698 代码
-        working-directory: blender
-        run: |
-          git fetch origin refs/changes/98/142698/1 && git checkout FETCH_HEAD
+      - name: 克隆 Tariq 仓库
+        run: git clone --depth=1 https://projects.blender.org/Tariq-13/blender.git
 
       - name: 初始化子模块
         working-directory: blender
@@ -27,23 +22,23 @@ jobs:
       - name: 创建构建目录
         run: mkdir build
 
-      - name: CMake 配置 Blender
+      - name: CMake 配置
         working-directory: build
         run: cmake ../blender -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 
-      - name: Ninja 编译
+      - name: 编译 Blender
         working-directory: build
         run: ninja
 
-      - name: 打包 exe 和 dll
+      - name: 打包 Blender
         run: |
           mkdir output
           copy build\bin\Release\blender.exe output\
           copy build\bin\Release\*.dll output\
-          Compress-Archive -Path output\* -DestinationPath blender_d142698_win.zip
+          Compress-Archive -Path output\* -DestinationPath blender_tariq_win.zip
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: blender_d142698_win
-          path: blender_d142698_win.zip
+          name: blender_tariq_win
+          path: blender_tariq_win.zip
